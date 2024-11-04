@@ -90,3 +90,5 @@ trainData_balanced <- SMOTE(V8 ~ V1 + V2 + V3 + V4 + V5, data = trainData, perc.
 
 # Check the distribution after SMOTE
 table(trainData_balanced$V8)
+
+# need to add hyperparameter tuning 
