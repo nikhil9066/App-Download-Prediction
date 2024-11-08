@@ -1,0 +1,110 @@
+---
+title: "Random Forest Prediction Model for Smartphone App Downloads"
+author: "Nikhil Prema Chandra Rao"
+date: "2024-11-08"
+output: pdf_document
+---
+
+## Introduction
+
+This assignment involves developing a Random Forest prediction model using the provided `data.csv` to predict whether a smartphone user will download an app after clicking an advertisement. The dataset consists of several variables related to the user’s interaction with the ad, such as their device type, OS version, and click timestamp. The goal is to predict the target variable `V8`, which indicates whether the app was downloaded (`1`) or not (`0`).
+
+## Data Loadig and Exploration
+```{r}
+library(tidyverse) 
+library(randomForest) 
+library(ggplot2) 
+library(pROC) 
+library(caret) 
+library(gridExtra) 
+library(reshape2) 
+library(RColorBrewer)
+
+set.seed(555)
+data <- read.csv("data.csv", sep = ",", header = FALSE)
+colnames(data) <- c("V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8")
+```
+
+The code sets a random seed for reproducibility, loads a CSV file named "data.csv" into a data frame, and assigns custom column names to the dataset.
+
+## Data Visualization
+To understand the distribution of the target variable V8 (indicating if the app was downloaded), we can visualize the distribution using a bar plot.
+
+```{r}
+ggplot(data, aes(x = V8)) + 
+  geom_bar(fill = "steelblue") +
+  labs(title = "Distribution of App Download (V8)", x = "App Download (0 or 1)", y = "Count")
+```
+
+In the "App Download Distribution (V8)" section, we have a bar chart that shows how many times each app was downloaded (0 means not downloaded, and 1 means downloaded) for all app IDs. The x-axis shows if the app was downloaded (1) or not downloaded (0), and the y-axis shows how many times that happened. Most apps have been downloaded zero times, and only a few have been downloaded once, which shows that very few apps in the dataset have any downloads. This distribution shows that there are many more apps that haven't been downloaded than those that have been downloaded.
+
+```{r}
+ggplot(data, aes(x = V2, fill = V8)) + 
+  geom_histogram(binwidth = 1, color = "black", position = "dodge") +
+  labs(title = "Distribution of V2 (App ID) by Download Status", x = "App ID (V2)", y = "Count")
+```
+
+In the chart titled "Distribution of V2 (App ID) by Download Status," the app IDs are shown along the bottom (x-axis). The number of each app ID is on the side (y-axis). The app IDs are grouped by their download status, with V8 shown in red for a status of 0 and green for a status of 1. The distribution is uneven, with most app IDs grouped at lower numbers. This means that most app IDs are downloaded very rarely or have only a few downloads. As the app IDs go up, the number of counts goes down a lot, showing that there are fewer counts for higher app IDs, no matter if they were downloaded or not.
+
+## Data Preprocessing
+Before building the model, we need to prepare the data. We will convert the target variable V8 to a factor and split the data into training and testing sets with a 50:50 ratio.
+
+```{r}
+data$V8 <- as.factor(data$V8)
+
+# Split the data into 50% training and 50% testing
+trainIndex <- createDataPartition(data$V8, p = 0.5, list = FALSE)
+trainData <- data[trainIndex, ]
+testData <- data[-trainIndex, ]
+```
+
+## Building the Random Forest Model
+We will build a random forest model to predict whether the app was downloaded using the training data. The model will use V1 to V5 as predictor variables.
+
+```{r}
+# Build the initial random forest model
+rf_model <- randomForest(V8 ~ V1 + V2 + V3 + V4 + V5, data = trainData)
+print(rf_model)
+```
+
+### Model Output
+The random forest model was built with the following parameters:
+
+Number of trees: 500
+Variables tried at each split: 2
+The out-of-bag (OOB) estimate of error rate is 0.21%. The confusion matrix for the model is shown below:
+
+The class error for predicting 0 (no download) is very low (0.00028), but the error for predicting 1 (app downloaded) is quite high (0.8157). This indicates that the model is biased towards predicting 0.
+
+The result from the `randomForest` function shows the information about the trained random forest model. It says that the model is used for classification and has 500 trees created. In each split, two variables were chosen at random to look at. The out-of-bag (OOB) error rate is very low at 0. 21%, meaning the model is doing a great job with the data it learned from. The confusion matrix shows how well the model did on the training data. For the "0" class (app not downloaded), it correctly identified 49,873 cases, but it wrongly labeled 14 cases as "1" (app downloaded). In class "1," there were 93 cases that were wrongly predicted as "0," but 21 cases were predicted correctly. The error rate for class "0" is very low (0. 00028), but the error rate for class "1" is very high (0. 8158) This means the model has problems predicting when the app is downloaded (class "1"). The uneven number of different groups might be why there are so many mistakes for class "1. "
+
+## Feature Importance
+Let's examine the importance of each feature in the model.
+```{r}
+varImpPlot(rf_model, main = "Variable Importance")
+```
+
+This "Variable Importance" chart shows how important different factors (V1, V2, V3, V4, V5) are in a model, probably using a decision tree or random forest method. The x-axis shows "MeanDecreaseGini," which tells us how much each variable helps the model make accurate predictions. Higher numbers mean that the variable is more important. In this case, V1 is the most important, then comes V5, followed by V4, V2, and V3, which is the least important. This chart shows that V1 is the most important factor for predicting the result, while V3 is the least important.
+
+## Model Evaluation on Test Data
+We will now evaluate the model on the test dataset and examine the confusion matrix.
+
+```{r}
+# Predictions on test set and confusion matrix
+predictions <- predict(rf_model, testData)
+conf_matrix <- confusionMatrix(predictions, testData$V8)
+print(conf_matrix)
+```
+
+### Output of Test Data Confusion Matrix
+
+
+## ROC Curve and AUC
+We will now plot the ROC curve and calculate the AUC (Area Under the Curve) for the model.
+```{r}
+roc_curve <- roc(testData$V8, as.numeric(predictions))
+plot(roc_curve, col = "blue", main = "ROC Curve for Random Forest Model")
+auc_value <- auc(roc_curve)
+cat("AUC:", auc_value, "\n")
+```
+
