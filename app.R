@@ -1,16 +1,16 @@
-library(tidyverse)
-library(randomForest)
-library(ggplot2)
-library(pROC)
-library(caret)
-library(gridExtra)
-library(reshape2)
+library(tidyverse) 
+library(randomForest) 
+library(ggplot2) 
+library(pROC) 
+library(caret) 
+library(gridExtra) 
+library(reshape2) 
 library(RColorBrewer)
 
 set.seed(555)
 
 # Load the dataset
-data <- read.csv("data.csv", sep=",", header=FALSE)
+data <- read.csv("data.csv", sep = ",", header = FALSE)
 colnames(data) <- c("V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8")
 
 # Convert target variable V8 to a factor (binary classification)
@@ -52,8 +52,8 @@ cat("AUC:", auc_value, "\n")
 # Plotting Confusion Matrix
 conf_matrix_plot <- as.data.frame(conf_matrix$table)
 ggplot(conf_matrix_plot, aes(Prediction, Reference, fill = Freq)) +
-  geom_tile() +
-  geom_text(aes(label = Freq), vjust = 1) +
+  geom_tile() + 
+  geom_text(aes(label = Freq), vjust = 1) + 
   scale_fill_gradient(low = "white", high = "blue") +
   labs(title = "Confusion Matrix: Random Forest", x = "Predicted", y = "Actual")
 
@@ -102,31 +102,3 @@ roc_curve <- roc(testData$V8, as.numeric(predictions))
 plot(roc_curve, col = "blue", main = "ROC Curve after Tuning")
 auc_value <- auc(roc_curve)
 cat("AUC after tuning:", auc_value, "\n")
-
-# Apply SMOTE for class imbalance handling
-library(DMwR)
-trainData_balanced <- SMOTE(V8 ~ V1 + V2 + V3 + V4 + V5, data = trainData, perc.over = 100, perc.under = 200)
-
-# Add interaction terms to the balanced data
-trainData_balanced$V2_V3_interaction <- trainData_balanced$V2 * trainData_balanced$V3
-trainData_balanced$V4_V5_interaction <- trainData_balanced$V4 * trainData_balanced$V5
-
-# Retrain the model with SMOTE applied
-rf_tuned_balanced <- train(V8 ~ V1 + V2 + V3 + V4 + V5 + V2_V3_interaction + V4_V5_interaction, 
-                           data = trainData_balanced, 
-                           method = "rf", 
-                           tuneGrid = tuneGrid, 
-                           trControl = control)
-
-# Predictions on test data with the balanced model
-predictions_balanced <- predict(rf_tuned_balanced, newdata = testData)
-
-# Confusion matrix for balanced model
-conf_matrix_balanced <- confusionMatrix(predictions_balanced, testData$V8)
-print(conf_matrix_balanced)
-
-# ROC curve and AUC for balanced model
-roc_curve_balanced <- roc(testData$V8, as.numeric(predictions_balanced))
-plot(roc_curve_balanced, col = "blue", main = "ROC Curve after SMOTE and Tuning")
-auc_value_balanced <- auc(roc_curve_balanced)
-cat("AUC after SMOTE and tuning:", auc_value_balanced, "\n")
