@@ -1,9 +1,11 @@
-# Load necessary libraries
 library(tidyverse)
 library(randomForest)
 library(ggplot2)
 library(pROC)
 library(caret)
+library(gridExtra)
+library(reshape2)
+library(RColorBrewer)
 
 set.seed(555)
 
@@ -46,6 +48,17 @@ roc_curve <- roc(testData$V8, as.numeric(predictions))
 plot(roc_curve, col = "blue", main = "ROC Curve for Random Forest Model")
 auc_value <- auc(roc_curve)
 cat("AUC:", auc_value, "\n")
+
+# Plotting Confusion Matrix
+conf_matrix_plot <- as.data.frame(conf_matrix$table)
+ggplot(conf_matrix_plot, aes(Prediction, Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq), vjust = 1) +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(title = "Confusion Matrix: Random Forest", x = "Predicted", y = "Actual")
+
+# Feature importance plot
+feature_importance_plot <- varImpPlot(rf_model, main = "Variable Importance")
 
 # Feature Engineering: Creating interaction terms
 data$V2_V3_interaction <- data$V2 * data$V3
